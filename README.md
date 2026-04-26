@@ -66,13 +66,7 @@ For testing purposes, you can use the following pre-seeded accounts:
 
 ---
 
-## 🌍 Deployment on Render
 
-This project is optimized for **Render**. It includes a `render.yaml` blueprint and a `build.sh` script for automatic deployment.
-
-1. Connect your repo to Render.
-2. Select **"Blueprint"** or create a **"Web Service"**.
-3. Add your `HF_TOKEN` and `GEMINI_API_KEY` to the Environment settings.
 
 ---
 
