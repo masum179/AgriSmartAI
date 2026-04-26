@@ -1,0 +1,186 @@
+{% load static %}
+{% load custom_i18n %}
+<!DOCTYPE html>
+<html lang="{{ request.session.lang|default:'bn' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AgriSmart AI — এআই-চালিত ফসলের রোগ শনাক্তকরণ প্ল্যাটফর্ম">
+  <title>{% block title %}AgriSmart AI{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <a class="navbar-brand" href="{% url 'accounts:dashboard' %}">
+        <span>🌿</span> AgriSmart AI
+      </a>
+      <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="মেনু">☰</button>
+      <div class="nav-links">
+        <!-- Notification Bell Dropdown -->
+        <div style="position:relative; display:inline-block;" id="notification-wrapper">
+          <a href="#" id="notification-bell" style="position:relative; padding:.45rem .7rem;" onclick="toggleNotificationDropdown(event)">
+            🔔
+            <span id="notification-badge" style="display:none; position:absolute; top:4px; right:4px; background:#ef4444; color:white; border-radius:50%; font-size:10px; width:18px; height:18px; align-items:center; justify-content:center; font-weight:700; line-height:1;">0</span>
+          </a>
+          <div id="notification-dropdown" style="display:none; position:absolute; right:0; top:100%; background:white; box-shadow:0 8px 24px rgba(0,0,0,0.15); border-radius:8px; width:320px; z-index:1000; max-height:400px; overflow-y:auto; border: 1px solid #eaeaea;">
+            <div style="padding:12px 16px; border-bottom:1px solid #eaeaea; font-weight:bold; color:#111; font-size:1rem; background:#f9fafb; border-radius:8px 8px 0 0;">
+              {% t 'নোটিফিকেশন' %}
+            </div>
+            <div id="notification-list">
+              <!-- Items injected by JS -->
+            </div>
+          </div>
+        </div>
+
+        {% if user.is_farmer %}
+          <a href="{% url 'accounts:farmer_dashboard' %}">🏠 {% t 'ড্যাশবোর্ড' %}</a>
+          <a href="{% url 'detection:upload' %}">📸 {% t 'রোগ শনাক্ত' %}</a>
+          <a href="{% url 'detection:history' %}">📋 {% t 'ইতিহাস' %}</a>
+          <a href="{% url 'detection:bookmarks' %}">⭐ {% t 'বুকমার্ক' %}</a>
+          <a href="{% url 'messaging:chat_list' %}">💬 {% t 'বার্তা' %}</a>
+        {% elif user.is_officer %}
+          <a href="{% url 'accounts:officer_dashboard' %}">🏠 {% t 'ড্যাশবোর্ড' %}</a>
+          <a href="{% url 'messaging:chat_list' %}">💬 {% t 'বার্তা' %}</a>
+          <a href="{% url 'adminpanel:manage_diseases' %}">🦠 {% t 'রোগ পরিচালনা' %}</a>
+          <a href="{% url 'detection:officer_add_disease' %}">➕ {% t 'নতুন রোগ' %}</a>
+        {% elif user.is_admin_user or user.is_superuser %}
+          <a href="{% url 'adminpanel:dashboard' %}">🏠 {% t 'ড্যাশবোর্ড' %}</a>
+          <a href="{% url 'adminpanel:manage_users' %}">👥 {% t 'ব্যবহারকারী' %}</a>
+          <a href="{% url 'adminpanel:manage_diseases' %}">🦠 {% t 'রোগ' %}</a>
+          <a href="{% url 'adminpanel:detection_logs' %}">📊 {% t 'লগ' %}</a>
+        {% endif %}
+        <a href="{% url 'accounts:profile' %}">👤 {% t 'প্রোফাইল' %}</a>
+        <a href="{% url 'accounts:toggle_lang' %}">🌐 {% if request.session.lang == 'en' %}বাংলা{% else %}English{% endif %}</a>
+        <a href="{% url 'accounts:logout' %}">🚪 {% t 'লগ আউট' %}</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Django Messages -->
+  {% if messages %}
+  <div class="messages-container" id="messages-container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      <span>{{ message }}</span>
+      <button class="close-btn" onclick="this.parentElement.remove()">&times;</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Main Content -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="global-toast-container"></div>
+
+  <script>
+    // Auto-dismiss Django messages after 5s
+    setTimeout(function() {
+      var alerts = document.querySelectorAll('.alert');
+      alerts.forEach(function(a) {
+        a.style.transition = 'opacity .5s';
+        a.style.opacity = '0';
+        setTimeout(function() { a.remove(); }, 500);
+      });
+    }, 5000);
+
+    // ── Notification Polling & Dropdown ──────────────────────────────
+    
+    // Load seen IDs from localStorage to ensure we only toast ONCE per notification ever
+    var seenNotifIds = new Set(JSON.parse(localStorage.getItem('seenNotifIds') || '[]'));
+    var bellBadge = document.getElementById('notification-badge');
+    var notifDropdown = document.getElementById('notification-dropdown');
+    var notifList = document.getElementById('notification-list');
+
+    function toggleNotificationDropdown(e) {
+      e.preventDefault();
+      if (notifDropdown.style.display === 'none') {
+        notifDropdown.style.display = 'block';
+      } else {
+        notifDropdown.style.display = 'none';
+      }
+    }
+
+    // Close dropdown if clicked outside
+    document.addEventListener('click', function(e) {
+      var wrapper = document.getElementById('notification-wrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        notifDropdown.style.display = 'none';
+      }
+    });
+
+    function fetchNotifications() {
+      fetch("{% url 'messaging:unread_notifications' %}")
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          // Update Bell Badge
+          if (data.count > 0) {
+            bellBadge.style.display = 'flex';
+            bellBadge.textContent = data.count;
+          } else {
+            bellBadge.style.display = 'none';
+          }
+          
+          // Clear and update the dropdown list
+          notifList.innerHTML = '';
+          if (data.count === 0) {
+            notifList.innerHTML = '<div style="padding:15px; text-align:center; color:#888; font-size:0.9rem;">কোনো নতুন নোটিফিকেশন নেই</div>';
+          }
+
+          var newlySeen = false;
+          data.notifications.forEach(function(notif) {
+            // Add to dropdown list
+            var item = document.createElement('a');
+            item.href = notif.url;
+            item.style.cssText = 'display:block; padding:12px; border-bottom:1px solid #f0f0f0; text-decoration:none; color:#333; transition:background 0.2s;';
+            item.onmouseover = function() { this.style.backgroundColor = '#f9fafb'; };
+            item.onmouseout = function() { this.style.backgroundColor = 'transparent'; };
+            var icon = notif.type === 'chat' ? '💬' : '⚠️';
+            item.innerHTML = '<div style="display:flex; gap:10px; align-items:start;"><div style="font-size:1.2rem;">' + icon + '</div><div><div style="font-weight:600; font-size:0.95rem; margin-bottom:3px; color:#111;">' + notif.title + '</div><div style="font-size:0.85rem; color:#666; line-height:1.3;">' + notif.message + '</div></div></div>';
+            notifList.appendChild(item);
+
+            // Trigger toast ONLY if never seen before across page loads
+            if (!seenNotifIds.has(notif.id)) {
+              seenNotifIds.add(notif.id);
+              newlySeen = true;
+              showToast(notif);
+            }
+          });
+          
+          if (newlySeen) {
+            localStorage.setItem('seenNotifIds', JSON.stringify(Array.from(seenNotifIds)));
+          }
+        })
+        .catch(function() {}); // silently fail
+    }
+
+    function showToast(notif) {
+      var container = document.getElementById('global-toast-container');
+      var toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.onclick = function() { window.location.href = notif.url; };
+      var icon = notif.type === 'chat' ? '💬' : '⚠️';
+      toast.innerHTML =
+        '<div class="toast-icon">' + icon + '</div>' +
+        '<div class="toast-content"><h4>' + notif.title + '</h4><p>' + notif.message + '</p></div>';
+      container.appendChild(toast);
+      setTimeout(function() {
+        toast.classList.add('hiding');
+        setTimeout(function() { toast.remove(); }, 400);
+      }, 6000);
+    }
+
+    // Poll every 15 seconds, first check after 2s
+    setTimeout(fetchNotifications, 2000);
+    setInterval(fetchNotifications, 15000);
+  </script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,125 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'কর্মকর্তা ড্যাশবোর্ড' %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+  <!-- Hero Banner -->
+  <div class="hero-banner hero-banner--blue">
+    <div>
+      <h1>🏛️ {% t 'কর্মকর্তা ড্যাশবোর্ড' %}</h1>
+      <p>{% t 'স্বাগতম,' %} {{ user.get_full_name|default:user.username }}</p>
+    </div>
+    <a href="{% url 'messaging:chat_list' %}" class="btn btn-white">💬 {% t 'বার্তা দেখুন' %}</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👨‍🌾</div>
+      <div class="stat-value">{{ farmers_count }}</div>
+      <div class="stat-label">{% t 'মোট কৃষক' %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔍</div>
+      <div class="stat-value">{{ total_detections }}</div>
+      <div class="stat-label">{% t 'মোট শনাক্তকরণ' %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💬</div>
+      <div class="stat-value">{{ unread_messages }}</div>
+      <div class="stat-label"><a href="{% url 'messaging:chat_list' %}">{% t 'অপঠিত বার্তা' %}</a></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-value">{{ info_requests|length }}</div>
+      <div class="stat-label">{% t 'অপেক্ষমাণ অনুরোধ' %}</div>
+    </div>
+  </div>
+
+  <!-- Pending Diseases & Requests -->
+  {% if pending_diseases or info_requests %}
+  <div class="card mb-3" style="border-left: 4px solid #f59e0b;">
+    <div class="card-header">
+      <h3 style="color:#d97706;">⚠️ {% t 'অপেক্ষমাণ রোগ ও অনুরোধ' %}</h3>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>{% t 'রোগ' %}</th>
+            <th>{% t 'অনুরোধকারী' %}</th>
+            <th>{% t 'ধরন' %}</th>
+            <th>{% t 'অ্যাকশন' %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in pending_diseases %}
+          <tr>
+            <td>{{ d.name_en }} / {{ d.name_bn }}</td>
+            <td>—</td>
+            <td><span class="status-badge status-pending">নতুন শনাক্ত</span></td>
+            <td><a href="{% url 'adminpanel:add_disease' %}?edit={{ d.id }}" class="btn btn-sm btn-primary">{% t 'তথ্য যোগ করুন' %}</a></td>
+          </tr>
+          {% endfor %}
+          {% for req in info_requests %}
+          <tr>
+            <td>{{ req.disease.name_en }} / {{ req.disease.name_bn }}</td>
+            <td>{{ req.user.get_full_name|default:req.user.username }}</td>
+            <td><span class="status-badge status-pending">কৃষকের অনুরোধ</span></td>
+            <td><a href="{% url 'adminpanel:add_disease' %}?edit={{ req.disease.id }}&req_id={{ req.id }}" class="btn btn-sm btn-accent">{% t 'তথ্য যোগ করুন' %}</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Quick Actions -->
+  <div class="card mb-3">
+    <div class="card-header"><h3>⚡ {% t 'দ্রুত কাজ' %}</h3></div>
+    <div class="flex gap-2 flex-wrap">
+      <a href="{% url 'messaging:chat_list' %}" class="btn btn-primary">💬 {% t 'বার্তা দেখুন' %}</a>
+      <a href="{% url 'adminpanel:manage_diseases' %}" class="btn btn-outline">🦠 {% t 'রোগ পরিচালনা' %}</a>
+      <a href="{% url 'adminpanel:manage_recommendations' %}" class="btn btn-outline">💊 {% t 'পরামর্শ পরিচালনা' %}</a>
+      <a href="{% url 'detection:officer_add_disease' %}" class="btn btn-outline">➕ {% t 'নতুন রোগ' %}</a>
+      <a href="{% url 'adminpanel:detection_logs' %}" class="btn btn-outline">📊 {% t 'সনাক্তকরণ লগ' %}</a>
+    </div>
+  </div>
+
+
+
+  <!-- Recent Detections -->
+  <div class="card">
+    <div class="card-header"><h3>🔍 {% t 'কৃষকদের সাম্প্রতিক শনাক্তকরণ' %}</h3></div>
+    {% if recent_detections %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>{% t 'কৃষক' %}</th>
+            <th>{% t 'রোগ' %}</th>
+            <th>{% t 'তারিখ' %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in recent_detections %}
+          <tr>
+            <td>{{ d.user.get_full_name|default:d.user.username }}</td>
+            <td>{{ d.disease.name_bn|default:"—" }}</td>
+            <td>{{ d.created_at|date:"d/m/Y" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">📋</div><h3>{% t 'কোনো শনাক্তকরণ নেই' %}</h3></div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

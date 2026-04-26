@@ -1,0 +1,61 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'রোগ তালিকা' %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <div class="page-header">
+    <h1>🦠 {% t 'রোগ তালিকা' %}</h1>
+    <p>{% t 'সিস্টেমে নিবন্ধিত সকল ফসলের রোগ' %}</p>
+  </div>
+
+  <!-- Search -->
+  <div class="filter-bar">
+    <input type="text" id="diseaseSearch" placeholder="{% t 'রোগ বা ফসলের নাম দিয়ে খুঁজুন...' %}" class="form-control" style="max-width:350px;" oninput="filterDiseases(this.value)">
+    <a href="{% url 'detection:officer_add_disease' %}" class="btn btn-primary">➕ {% t 'নতুন রোগ যোগ করুন' %}</a>
+  </div>
+
+  {% if diseases %}
+    <div id="diseaseContainer">
+    {% for disease in diseases %}
+    <div class="card mb-2 disease-card" data-name="{{ disease.name_bn }} {{ disease.name_en }} {{ disease.crop_type }}">
+      <div class="card-header">
+        <div>
+          <h3>{{ disease.name_bn }} <span class="text-muted" style="font-weight:400;font-size:.85rem">({{ disease.name_en }})</span></h3>
+          <small class="text-muted">🌿 {% t 'ফসল' %}: {{ disease.crop_type }}</small>
+        </div>
+        <span class="severity-badge severity-{{ disease.severity }}">{{ disease.get_severity_display }}</span>
+      </div>
+      {% if disease.description_bn %}<p class="text-muted" style="font-size:.9rem;margin-top:.5rem;">{{ disease.description_bn }}</p>{% endif %}
+      {% for rec in disease.recommendations.all %}
+        <div class="rec-card mt-2">
+          {% if rec.treatment_bn %}<p><strong>🩺 {% t 'চিকিৎসা' %}:</strong> {{ rec.treatment_bn }}</p>{% endif %}
+          {% if rec.pesticide_bn %}<p><strong>🧪 {% t 'কীটনাশক' %}:</strong> {{ rec.pesticide_bn }}</p>{% endif %}
+          {% if rec.prevention_bn %}<p><strong>🛡️ {% t 'প্রতিরোধ' %}:</strong> {{ rec.prevention_bn }}</p>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🦠</div>
+    <h3>{% t 'কোনো রোগ নিবন্ধিত নেই' %}</h3>
+    <a href="{% url 'detection:officer_add_disease' %}" class="btn btn-primary mt-2">➕ {% t 'নতুন রোগ যোগ করুন' %}</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterDiseases(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.disease-card').forEach(card => {
+    const name = (card.getAttribute('data-name') || '').toLowerCase();
+    card.style.display = name.includes(q) ? 'block' : 'none';
+  });
+}
+</script>
+{% endblock %}

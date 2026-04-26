@@ -1,0 +1,97 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'অ্যাডমিন ড্যাশবোর্ড — AgriSmart AI' %}{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <div class="page-header">
+    <h1>🛡️ {% t 'অ্যাডমিন ড্যাশবোর্ড' %}</h1>
+    <p>{% t 'সিস্টেম পরিচালনা ও পর্যবেক্ষণ' %}</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-value">{{ total_users }}</div>
+      <div class="stat-label">{% t 'মোট ব্যবহারকারী' %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">👨‍🌾</div>
+      <div class="stat-value">{{ total_farmers }}</div>
+      <div class="stat-label">{% t 'কৃষক' %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🦠</div>
+      <div class="stat-value">{{ total_diseases }}</div>
+      <div class="stat-label">{% t 'নিবন্ধিত রোগ' %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔍</div>
+      <div class="stat-value">{{ total_detections }}</div>
+      <div class="stat-label">{% t 'মোট শনাক্তকরণ' %}</div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card mb-3">
+    <div class="card-header"><h3>⚡ {% t 'পরিচালনা' %}</h3></div>
+    <div class="flex gap-2 flex-wrap">
+      <a href="{% url 'adminpanel:manage_users' %}" class="btn btn-primary">👥 {% t 'ব্যবহারকারী' %}</a>
+      <a href="{% url 'adminpanel:add_user' %}" class="btn btn-accent">➕ {% t 'নতুন ব্যবহারকারী' %}</a>
+    </div>
+  </div>
+
+  <!-- Mini Stats Row -->
+  <div class="flex gap-2 mb-3" style="flex-wrap:wrap;">
+    <div class="card" style="flex:1;min-width:150px;border-left:4px solid var(--clr-accent);">
+      <div style="font-size:.85rem;color:var(--clr-text-muted);">Pending</div>
+      <div style="font-size:1.5rem;font-weight:700;">{{ pending_detections }}</div>
+    </div>
+    <div class="card" style="flex:1;min-width:150px;border-left:4px solid var(--clr-primary);">
+      <div style="font-size:.85rem;color:var(--clr-text-muted);">Completed</div>
+      <div style="font-size:1.5rem;font-weight:700;">{{ completed_detections }}</div>
+    </div>
+    <div class="card" style="flex:1;min-width:150px;border-left:4px solid var(--clr-info);">
+      <div style="font-size:.85rem;color:var(--clr-text-muted);">Officers</div>
+      <div style="font-size:1.5rem;font-weight:700;">{{ total_officers }}</div>
+    </div>
+  </div>
+
+  <!-- Recent Detections -->
+  <div class="card">
+    <div class="card-header">
+      <h3>🕐 {% t 'সাম্প্রতিক শনাক্তকরণ' %}</h3>
+      <a href="{% url 'adminpanel:detection_logs' %}" class="btn btn-sm btn-outline">{% t 'সব দেখুন' %}</a>
+    </div>
+    {% if recent_detections %}
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>{% t 'ব্যবহারকারী' %}</th><th>{% t 'রোগ' %}</th><th>{% t 'আত্মবিশ্বাস' %}</th><th>{% t 'অবস্থা' %}</th><th>{% t 'তারিখ' %}</th><th>{% t 'পরিচালনা' %}</th></tr></thead>
+        <tbody>
+          {% for d in recent_detections %}
+          <tr>
+            <td>{{ d.user.username }}</td>
+            <td>{% if request.session.lang == 'en' %}{{ d.disease.name_en|default:"—" }}{% else %}{{ d.disease.name_bn|default:"—" }}{% endif %}</td>
+            <td>{{ d.confidence_percent }}</td>
+            <td><span class="status-badge status-{{ d.status }}">{% t d.get_status_display %}</span></td>
+            <td>{{ d.created_at|date:"d/m/Y H:i" }}</td>
+            <td>
+              <form method="post" action="{% url 'adminpanel:delete_detection_log' d.pk %}" style="display:inline" onsubmit="return confirm('{% t 'আপনি কি নিশ্চিত?' %}');">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="btn btn-sm" style="background:#ef4444;color:white;border:none;">{% t 'মুছুন' %}</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">📊</div><h3>{% t 'কোনো শনাক্তকরণ নেই' %}</h3></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

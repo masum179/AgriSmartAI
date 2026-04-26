@@ -1,0 +1,99 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'প্রোফাইল' %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width: 650px;">
+
+  <!-- Profile Update Card -->
+  <div class="card mb-3">
+    <div class="card-header">
+      <h3>👤 {% t 'প্রোফাইল সেটিংস' %}</h3>
+    </div>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <div class="helptext">{{ field.help_text|safe }}</div>
+          {% endif %}
+          {% if field.errors %}
+            {% for error in field.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+          {% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary btn-block">{% t 'আপডেট করুন' %}</button>
+    </form>
+  </div>
+
+  <!-- Account Info Card -->
+  <div class="card mb-3" style="background: var(--clr-surface-alt);">
+    <div class="card-header">
+      <h3>ℹ️ {% t 'অ্যাকাউন্ট তথ্য' %}</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div>
+        <p class="text-muted" style="font-size:.82rem; margin-bottom:.2rem;">{% t 'ব্যবহারকারীর নাম' %}</p>
+        <p><strong>{{ user.username }}</strong></p>
+      </div>
+      <div>
+        <p class="text-muted" style="font-size:.82rem; margin-bottom:.2rem;">{% t 'ভূমিকা' %}</p>
+        <p><strong>{{ user.get_role_display }}</strong></p>
+      </div>
+      <div>
+        <p class="text-muted" style="font-size:.82rem; margin-bottom:.2rem;">{% t 'যোগদানের তারিখ' %}</p>
+        <p><strong>{{ user.date_joined|date:"d M Y" }}</strong></p>
+      </div>
+      <div>
+        <p class="text-muted" style="font-size:.82rem; margin-bottom:.2rem;">{% t 'শেষ লগইন' %}</p>
+        <p><strong>{{ user.last_login|date:"d M Y, H:i"|default:"—" }}</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Account Card -->
+  <div class="card" style="border: 2px solid var(--clr-danger);">
+    <div class="card-header" style="border-bottom-color: var(--clr-danger);">
+      <h3 style="color: var(--clr-danger);">⚠️ {% t 'অ্যাকাউন্ট মুছুন' %}</h3>
+    </div>
+    <p class="text-muted" style="margin-bottom: 1rem;">
+      {% t 'এই কাজটি স্থায়ী। আপনার সমস্ত ডেটা মুছে ফেলা হবে এবং এটি পুনরুদ্ধার করা সম্ভব হবে না।' %}
+    </p>
+
+    <button type="button" class="btn btn-danger"
+            onclick="document.getElementById('delete-modal').style.display='flex'">
+      🗑️ {% t 'অ্যাকাউন্ট মুছুন' %}
+    </button>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+     z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+  <div style="background: white; border-radius: var(--radius-lg); padding: 2rem;
+              max-width: 440px; width:100%; box-shadow: var(--shadow-lg); animation: fadeUp .3s ease;">
+    <h2 style="color: var(--clr-danger); margin-bottom: .5rem;">⚠️ {% t 'নিশ্চিত করুন' %}</h2>
+    <p style="margin-bottom: 1.25rem; color: var(--clr-text-muted);">
+      {% t 'আপনার অ্যাকাউন্ট মুছে ফেলতে আপনার পাসওয়ার্ড দিন।' %}
+    </p>
+    <form method="post" action="{% url 'accounts:delete_account' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>{% t 'পাসওয়ার্ড' %}</label>
+        <input type="password" name="password" class="form-control"
+               placeholder="{% t 'আপনার পাসওয়ার্ড লিখুন' %}" required>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button type="submit" class="btn btn-danger flex-1">🗑️ {% t 'হ্যাঁ, মুছুন' %}</button>
+        <button type="button" class="btn btn-outline flex-1"
+                onclick="document.getElementById('delete-modal').style.display='none'">
+          {% t 'বাতিল' %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

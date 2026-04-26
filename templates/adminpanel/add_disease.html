@@ -1,0 +1,56 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{% if disease %}রোগ আপডেট{% else %}নতুন রোগ যোগ{% endif %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width:650px">
+  <div class="card">
+    <div class="card-header"><h3>{% if disease %}✏️ রোগ আপডেট করুন{% else %}➕ নতুন রোগ যোগ করুন{% endif %}</h3></div>
+    <form method="post">
+      {% csrf_token %}
+      {% if disease %}<input type="hidden" name="edit_id" value="{{ disease.id }}">{% endif %}
+      {% if req_id %}<input type="hidden" name="req_id" value="{{ req_id }}">{% endif %}
+      <div class="form-group">
+        <label>রোগের নাম (বাংলা) *</label>
+        <input type="text" name="name_bn" class="form-control" required placeholder="যেমন: পাতা পোড়া রোগ" value="{{ disease.name_bn|default:'' }}">
+      </div>
+      <div class="form-group">
+        <label>রোগের নাম (ইংরেজি) *</label>
+        <input type="text" name="name_en" class="form-control" required placeholder="e.g. Leaf Blight" value="{{ disease.name_en|default:'' }}">
+      </div>
+      <div class="form-group">
+        <label>বিবরণ (বাংলা)</label>
+        <textarea name="description_bn" class="form-control" rows="3" placeholder="রোগের বিবরণ লিখুন...">{{ disease.description_bn|default:'' }}</textarea>
+      </div>
+      <div class="form-group">
+        <label>ফসলের ধরণ *</label>
+        <input type="text" name="crop_type" class="form-control" required placeholder="যেমন: ধান" value="{{ disease.crop_type|default:'' }}">
+      </div>
+      <div class="form-group">
+        <label>তীব্রতা</label>
+        <select name="severity" class="form-control">
+          <option value="low" {% if disease.severity == 'low' %}selected{% endif %}>কম</option>
+          <option value="medium" {% if not disease or disease.severity == 'medium' %}selected{% endif %}>মাঝারি</option>
+          <option value="high" {% if disease.severity == 'high' %}selected{% endif %}>উচ্চ</option>
+          <option value="critical" {% if disease.severity == 'critical' %}selected{% endif %}>জরুরি</option>
+        </select>
+      </div>
+      <hr style="margin:1.5rem 0;border-color:var(--clr-border)">
+      <h3 class="mb-2">💊 চিকিৎসা পরামর্শ</h3>
+      <div class="form-group">
+        <label>চিকিৎসা (বাংলা)</label>
+        <textarea name="treatment_bn" class="form-control" rows="2" placeholder="চিকিৎসা পদ্ধতি..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>কীটনাশক</label>
+        <input type="text" name="pesticide_bn" class="form-control" placeholder="কীটনাশকের নাম">
+      </div>
+      <div class="form-group">
+        <label>প্রতিরোধ</label>
+        <textarea name="prevention_bn" class="form-control" rows="2" placeholder="প্রতিরোধ ব্যবস্থা..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block mt-2">{% if disease %}তথ্য আপডেট করুন{% else %}রোগ সংরক্ষণ করুন{% endif %}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

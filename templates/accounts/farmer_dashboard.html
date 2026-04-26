@@ -1,0 +1,87 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'কৃষক ড্যাশবোর্ড' %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+
+  <!-- Hero Banner -->
+  <div class="hero-banner">
+    <div>
+      <h1>🌾 {% t 'স্বাগতম,' %} {{ user.get_full_name|default:user.username }}!</h1>
+      <p>{% t 'আপনার ফসলের স্বাস্থ্য পরীক্ষা করুন এবং সঠিক পরামর্শ পান।' %}</p>
+    </div>
+    <a href="{% url 'detection:upload' %}" class="btn btn-white">📸 {% t 'নতুন শনাক্তকরণ' %}</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">🔍</div>
+      <div class="stat-value">{{ total_detections }}</div>
+      <div class="stat-label">{% t 'মোট শনাক্তকরণ' %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-value">{{ bookmarked_count }}</div>
+      <div class="stat-label"><a href="{% url 'detection:bookmarks' %}">{% t 'বুকমার্ক' %}</a></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💬</div>
+      <div class="stat-value">{{ unread_messages }}</div>
+      <div class="stat-label"><a href="{% url 'messaging:chat_list' %}">{% t 'অপঠিত বার্তা' %}</a></div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card mb-3">
+    <div class="card-header"><h3>⚡ {% t 'দ্রুত কাজ' %}</h3></div>
+    <div class="flex gap-2 flex-wrap">
+      <a href="{% url 'detection:upload' %}" class="btn btn-primary">📸 {% t 'রোগ শনাক্ত করুন' %}</a>
+      <a href="{% url 'detection:history' %}" class="btn btn-outline">📋 {% t 'ইতিহাস দেখুন' %}</a>
+      <a href="{% url 'messaging:chat_list' %}" class="btn btn-outline">💬 {% t 'বার্তা পাঠান' %}</a>
+      <a href="{% url 'detection:bookmarks' %}" class="btn btn-outline">⭐ {% t 'বুকমার্ক' %}</a>
+    </div>
+  </div>
+
+  <!-- Recent Detections -->
+  <div class="card">
+    <div class="card-header">
+      <h3>🕐 {% t 'সাম্প্রতিক শনাক্তকরণ' %}</h3>
+      <a href="{% url 'detection:history' %}" class="btn btn-sm btn-outline">{% t 'সব দেখুন' %}</a>
+    </div>
+    {% if recent_detections %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>{% t 'তারিখ' %}</th>
+            <th>{% t 'রোগ' %}</th>
+            <th>{% t 'অবস্থা' %}</th>
+            <th>{% t 'বিস্তারিত' %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in recent_detections %}
+          <tr>
+            <td>{{ d.created_at|date:"d/m/Y H:i" }}</td>
+            <td>{{ d.disease.name_bn|default:"অজানা" }}</td>
+            <td><span class="status-badge status-{{ d.status }}">{{ d.get_status_display }}</span></td>
+            <td><a href="{% url 'detection:result' d.pk %}" class="btn btn-sm btn-primary">{% t 'দেখুন' %}</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🌱</div>
+      <h3>{% t 'এখনো কোনো শনাক্তকরণ নেই' %}</h3>
+      <p>{% t 'আপনার ফসলের পাতার ছবি আপলোড করে শুরু করুন' %}</p>
+      <a href="{% url 'detection:upload' %}" class="btn btn-primary mt-2">{% t 'শুরু করুন' %}</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

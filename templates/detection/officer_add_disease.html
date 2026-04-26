@@ -1,0 +1,86 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}নতুন রোগ যোগ করুন — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width: 700px;">
+  <div class="page-header">
+    <a href="{% url 'detection:disease_list' %}" class="btn btn-sm btn-outline mb-2">← {% t 'ফিরে যান' %}</a>
+    <h1>🦠 নতুন রোগ যোগ করুন</h1>
+    <p>ফসলের নতুন রোগের তথ্য ডেটাবেসে যোগ করুন</p>
+  </div>
+
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Basic Info -->
+      <h3 class="mb-2">📋 মূল তথ্য</h3>
+
+      <div class="flex gap-2" style="flex-wrap:wrap;">
+        <div class="form-group" style="flex:1; min-width:200px;">
+          <label>রোগের নাম (বাংলা) *</label>
+          <input type="text" name="name_bn" class="form-control" placeholder="যেমন: ধানের ব্লাস্ট" required>
+        </div>
+        <div class="form-group" style="flex:1; min-width:200px;">
+          <label>Disease Name (English) *</label>
+          <input type="text" name="name_en" class="form-control" placeholder="e.g. Rice Blast" required>
+        </div>
+      </div>
+
+      <div class="flex gap-2" style="flex-wrap:wrap;">
+        <div class="form-group" style="flex:1; min-width:200px;">
+          <label>ফসলের ধরন *</label>
+          <input type="text" name="crop_type" class="form-control" placeholder="যেমন: ধান, গম, টমেটো" required>
+        </div>
+        <div class="form-group" style="flex:1; min-width:200px;">
+          <label>তীব্রতা</label>
+          <select name="severity" class="form-control">
+            <option value="low">কম (Low)</option>
+            <option value="medium" selected>মাঝারি (Medium)</option>
+            <option value="high">বেশি (High)</option>
+            <option value="critical">অতি মারাত্মক (Critical)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>রোগের বিবরণ (বাংলা)</label>
+        <textarea name="description_bn" class="form-control" rows="3"
+                  placeholder="রোগের লক্ষণ ও বিবরণ লিখুন..."></textarea>
+      </div>
+
+      <!-- Recommendation -->
+      <h3 class="mt-3 mb-2">💊 চিকিৎসার পরামর্শ (ঐচ্ছিক)</h3>
+
+      <div class="form-group">
+        <label>চিকিৎসা পদ্ধতি</label>
+        <textarea name="treatment_bn" class="form-control" rows="2"
+                  placeholder="চিকিৎসার বিবরণ লিখুন..."></textarea>
+      </div>
+
+      <div class="flex gap-2" style="flex-wrap:wrap;">
+        <div class="form-group" style="flex:1; min-width:200px;">
+          <label>কীটনাশকের নাম</label>
+          <input type="text" name="pesticide_bn" class="form-control" placeholder="যেমন: ট্রাইসাইক্লাজোল ৭৫ WP">
+        </div>
+        <div class="form-group" style="flex:1; min-width:200px;">
+          <label>আনুমানিক মূল্য (৳)</label>
+          <input type="text" name="pesticide_cost_bn" class="form-control" placeholder="যেমন: ৳ ১৫০-২০০ প্রতি প্যাকেট">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>প্রতিরোধ পদ্ধতি</label>
+        <textarea name="prevention_bn" class="form-control" rows="2"
+                  placeholder="রোগ প্রতিরোধের পরামর্শ লিখুন..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block mt-3">
+        ✅ রোগ যোগ করুন
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

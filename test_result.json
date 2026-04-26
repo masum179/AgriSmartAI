@@ -1,0 +1,1 @@
+{"success": true, "disease_id": 26, "disease_name_bn": "ভুট্টার গ্রে লিফ স্পট", "disease_name_en": "Corn Gray Leaf Spot", "crop_type": "Corn", "severity": "high", "confidence": 0.5747, "recommendations": [{"treatment": "ছত্রাকনাশক স্প্রে করুন এবং আক্রান্ত পাতা সরিয়ে ফেলুন।", "pesticide": "পাইরাক্লোস্ট্রবিন (Pyraclostrobin)", "prevention": "ফসল আবর্তন করুন।", "dosage": ""}]}

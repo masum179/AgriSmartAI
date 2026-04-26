@@ -1,0 +1,44 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}রোগ পরিচালনা — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <div class="page-header flex justify-between items-center">
+    <div>
+      <h1>🦠 রোগ পরিচালনা</h1>
+      <p>সিস্টেমে নিবন্ধিত সকল রোগ</p>
+    </div>
+    <a href="{% url 'adminpanel:add_disease' %}" class="btn btn-primary">➕ নতুন রোগ</a>
+  </div>
+
+  {% if diseases %}
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>নাম (বাংলা)</th><th>নাম (ইংরেজি)</th><th>ফসল</th><th>তীব্রতা</th><th>পরামর্শ</th><th>অবস্থা</th><th>অ্যাকশন</th></tr></thead>
+      <tbody>
+        {% for d in diseases %}
+        <tr>
+          <td>{{ d.name_bn }}</td>
+          <td>{{ d.name_en }}</td>
+          <td>{{ d.crop_type }}</td>
+          <td><span class="severity-badge severity-{{ d.severity }}">{{ d.get_severity_display }}</span></td>
+          <td>{{ d.recommendations.count }}টি</td>
+          <td><span class="status-badge {% if d.is_active %}status-completed{% else %}status-failed{% endif %}">{% if d.is_active %}সক্রিয়{% else %}নিষ্ক্রিয়{% endif %}</span></td>
+          <td>
+            <form method="post" action="{% url 'adminpanel:delete_disease' d.pk %}" class="inline-form" onsubmit="return confirm('আপনি কি নিশ্চিত যে আপনি এই রোগটি মুছে ফেলতে চান? এর সাথে সম্পর্কিত সকল তথ্য মুছে যাবে।');">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit" class="btn btn-sm btn-danger" style="background:#ef4444;color:white;border:none" title="মুছে ফেলুন">🗑️</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">🦠</div><h3>কোনো রোগ নেই</h3><a href="{% url 'adminpanel:add_disease' %}" class="btn btn-primary mt-2">রোগ যোগ করুন</a></div>
+  {% endif %}
+</div>
+{% endblock %}

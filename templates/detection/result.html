@@ -1,0 +1,110 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'শনাক্তকরণ ফলাফল' %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width:800px">
+  <div class="result-card">
+    <!-- Result Header -->
+    <div class="result-header">
+      <h2>🔬 {% t 'শনাক্তকরণ ফলাফল' %}</h2>
+      {% if detection.disease %}
+        <p style="font-size:1.3rem;margin-top:.5rem">{% if request.session.lang == 'en' %}{{ detection.disease.name_en }}{% else %}{{ detection.disease.name_bn }}{% endif %}</p>
+        <p style="opacity:.85;font-size:.9rem">{% if request.session.lang == 'en' %}{{ detection.disease.name_bn }}{% else %}{{ detection.disease.name_en }}{% endif %} | {{ detection.disease.crop_type }}</p>
+      {% else %}
+        <p>{% t 'রোগ শনাক্ত করা যায়নি' %}</p>
+      {% endif %}
+    </div>
+
+    <!-- Result Body -->
+    <div class="result-body">
+      <!-- Uploaded Image -->
+      {% if detection.image %}
+        <img src="{{ detection.image.url }}" alt="আপলোড করা ছবি" class="result-image">
+      {% endif %}
+
+      <!-- Disease Info -->
+      {% if detection.disease %}
+        <div class="flex items-center gap-1 mb-2">
+          <span class="severity-badge severity-{{ detection.disease.severity }}">
+            {% t 'তীব্রতা' %}: {{ detection.disease.get_severity_display }}
+          </span>
+          <span class="status-badge status-{{ detection.status }}">{% t detection.get_status_display %}</span>
+        </div>
+
+        {% if detection.disease.description_bn %}
+          <div class="rec-card">
+            <h4>📝 {% t 'রোগের বিবরণ' %}</h4>
+            <p>{{ detection.disease.description_bn }}</p>
+          </div>
+        {% endif %}
+
+        <!-- Recommendations -->
+        {% if recommendations %}
+          <h3 class="mt-3 mb-2">💊 {% t 'চিকিৎসা ও পরামর্শ' %}</h3>
+          {% for rec in recommendations %}
+            <div class="rec-card">
+              {% if rec.treatment_bn %}
+                <h4>🩺 {% t 'চিকিৎসা' %}</h4>
+                <p>{{ rec.treatment_bn }}</p>
+              {% endif %}
+              {% if rec.pesticide_bn %}
+                <h4 class="mt-2">🧪 {% t 'কীটনাশক' %}</h4>
+                <p>{{ rec.pesticide_bn }}</p>
+                {% if rec.pesticide_cost_bn %}
+                  <p class="text-muted"><small>{% t 'মূল্য' %}: {{ rec.pesticide_cost_bn }}</small></p>
+                {% endif %}
+              {% endif %}
+              {% if rec.prevention_bn %}
+                <h4 class="mt-2">🛡️ {% t 'প্রতিরোধ' %}</h4>
+                <p>{{ rec.prevention_bn }}</p>
+              {% endif %}
+              {% if rec.dosage %}
+                <h4 class="mt-2">📏 {% t 'মাত্রা' %}</h4>
+                <p>{{ rec.dosage }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% elif detection.disease and not detection.disease.is_active %}
+          <div class="rec-card mt-3" style="border-left: 4px solid #f59e0b; background: #fffbeb;">
+            <h4 style="color: #d97706;">⚠️ {% t 'চিকিৎসা তথ্য অনুপস্থিত' %}</h4>
+            <p style="color: #b45309;">{% t 'এই রোগটি নতুন শনাক্ত হয়েছে। এখনও আমাদের ডাটাবেসে এর কোনো বিস্তারিত চিকিৎসা বা প্রতিরোধ তথ্য নেই।' %}</p>
+            
+            <form method="post" action="{% url 'detection:request_info' detection.disease.id %}" class="mt-2">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm" style="background:#f59e0b; color:white; border:none;">✉️ {% t 'কৃষি কর্মকর্তার কাছে তথ্য অনুরোধ করুন' %}</button>
+            </form>
+          </div>
+        {% endif %}
+      {% endif %}
+      
+      <!-- Similar Disease Gallery -->
+      {% if gallery_images %}
+        <h3 class="mt-3 mb-2">🖼️ {% t 'একই রকম রোগের ছবি' %}</h3>
+        <div class="gallery-container">
+          {% for img in gallery_images %}
+            <div class="gallery-item">
+              <img src="{{ img.image.url }}" alt="{{ detection.disease.name_bn }}">
+              {% if img.caption %}<p>{{ img.caption }}</p>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Actions -->
+      <div class="flex gap-2 flex-wrap mt-3">
+        <form method="post" action="{% url 'detection:toggle_bookmark' detection.pk %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="btn {% if detection.is_bookmarked %}btn-accent{% else %}btn-outline{% endif %}">
+            {% if detection.is_bookmarked %}⭐ {% t 'বুকমার্ক করা' %}{% else %}☆ {% t 'বুকমার্ক করুন' %}{% endif %}
+          </button>
+        </form>
+        <a href="{% url 'detection:upload' %}" class="btn btn-primary">📸 {% t 'নতুন শনাক্তকরণ' %}</a>
+        <a href="{% url 'messaging:chat_list' %}?detection_id={{ detection.id }}" class="btn btn-outline" style="border-color: #10b981; color: #10b981;">👨‍🌾 {% t 'কৃষি কর্মকর্তার সাথে কথা বলুন' %}</a>
+        <a href="{% url 'detection:history' %}" class="btn btn-outline">📋 {% t 'ইতিহাস' %}</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

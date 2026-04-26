@@ -1,0 +1,201 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}🤖 AI কৃষি সহকারী — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width: 780px;">
+  <div class="page-header">
+    <h1>🤖 AI কৃষি সহকারী</h1>
+    <p>ফসলের রোগ, সার, কীটনাশক সম্পর্কে যেকোনো প্রশ্ন করুন</p>
+  </div>
+
+  <div class="chat-container" style="height: calc(100vh - 220px); max-height: 680px;">
+    <!-- Chat Header -->
+    <div class="chat-header" style="background: linear-gradient(135deg, #7c3aed, #4f46e5);">
+      <div class="avatar" style="background: rgba(255,255,255,.2); font-size:1.3rem;">🤖</div>
+      <div>
+        <strong>AgriSmart AI সহকারী</strong>
+        <div style="font-size:.78rem; opacity:.85;" id="status-text">
+          {% if gemini_available %}✅ Gemini AI সংযুক্ত{% else %}⚠️ Mock মোডে চলছে{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages Area -->
+    <div class="chat-messages" id="chat-messages">
+      <!-- Welcome message -->
+      <div class="chat-bubble received" style="max-width:85%;">
+        <span style="font-size:1.1rem;">🌿</span>
+        আস্সালামু আলাইকুম! আমি AgriSmart AI-র কৃষি সহকারী।<br>
+        ধান, গম, সবজি বা যেকোনো ফসলের রোগ, কীটনাশক ও সার সম্পর্কে আমাকে জিজ্ঞেস করুন।
+        <span class="time">এখন</span>
+      </div>
+
+      <!-- Render past history -->
+      {% if chat_history %}
+        {% for exchange in chat_history %}
+          <div class="chat-bubble sent">
+            {{ exchange.user|linebreaksbr }}
+          </div>
+          <div class="chat-bubble received" style="max-width:85%; background:white;">
+            {{ exchange.bot|linebreaksbr }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Quick suggestion pills -->
+      <div id="suggestions" style="display:flex; flex-wrap:wrap; gap:.5rem; padding:.25rem 0; {% if chat_history %}display:none;{% endif %}">
+        <button class="suggestion-pill" onclick="sendSuggestion(this)">🌾 ধানের ব্লাস্ট রোগ কী?</button>
+        <button class="suggestion-pill" onclick="sendSuggestion(this)">🧪 কীটনাশক কীভাবে দেবো?</button>
+        <button class="suggestion-pill" onclick="sendSuggestion(this)">💧 সেচ কখন দেবো?</button>
+        <button class="suggestion-pill" onclick="sendSuggestion(this)">🌿 পাতা হলুদ হয় কেন?</button>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input">
+      <input type="text" id="user-input" placeholder="আপনার প্রশ্ন লিখুন..."
+             autocomplete="off" onkeydown="if(event.key==='Enter') sendMessage()">
+      <button class="btn btn-primary btn-icon" onclick="sendMessage()" id="send-btn" title="পাঠান">➤</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const chatBox = document.getElementById('chat-messages');
+  const userInput = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+
+  const CHATBOT_URL = "{% url 'messaging:chatbot_api' %}";
+  const CSRF_TOKEN = "{{ csrf_token }}";
+
+  function scrollToBottom() {
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function appendBubble(text, type, isHtml = false) {
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${type}`;
+    if (type === 'received') {
+      bubble.style.maxWidth = '85%';
+      bubble.style.background = 'white';
+    }
+    if (isHtml) {
+      bubble.innerHTML = text;
+    } else {
+      // Convert newlines to <br>
+      bubble.innerHTML = text.replace(/\n/g, '<br>');
+    }
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'time';
+    timeSpan.textContent = new Date().toLocaleTimeString('bn-BD', {hour:'2-digit', minute:'2-digit'});
+    bubble.appendChild(timeSpan);
+    chatBox.appendChild(bubble);
+    scrollToBottom();
+    return bubble;
+  }
+
+  function appendTyping() {
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble received';
+    bubble.id = 'typing-indicator';
+    bubble.style.maxWidth = '120px';
+    bubble.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+    chatBox.appendChild(bubble);
+    scrollToBottom();
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typing-indicator');
+    if (t) t.remove();
+  }
+
+  function sendSuggestion(btn) {
+    userInput.value = btn.textContent.replace(/^[^\s]+\s/, '');
+    document.getElementById('suggestions').style.display = 'none';
+    sendMessage();
+  }
+
+  async function sendMessage() {
+    const message = userInput.value.trim();
+    if (!message) return;
+
+    userInput.value = '';
+    sendBtn.disabled = true;
+    userInput.disabled = true;
+
+    // Show user bubble
+    appendBubble(message, 'sent');
+
+    // Show typing
+    appendTyping();
+
+    try {
+      const response = await fetch(CHATBOT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF_TOKEN,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ message }),
+      });
+
+      removeTyping();
+
+      if (!response.ok) {
+        appendBubble('❌ সার্ভারে সমস্যা হয়েছে। পরে চেষ্টা করুন।', 'received');
+      } else {
+        const data = await response.json();
+        const prefix = data.mock ? '⚠️ (Mock) ' : '';
+        appendBubble(prefix + (data.reply || data.error || 'উত্তর পাওয়া যায়নি।'), 'received');
+      }
+    } catch (err) {
+      removeTyping();
+      appendBubble('❌ ইন্টারনেট সংযোগ পরীক্ষা করুন।', 'received');
+    }
+
+    sendBtn.disabled = false;
+    userInput.disabled = false;
+    userInput.focus();
+  }
+
+  scrollToBottom();
+  userInput.focus();
+</script>
+
+<style>
+  .suggestion-pill {
+    background: var(--clr-primary-light);
+    border: 1px solid var(--clr-primary);
+    color: var(--clr-primary-dark);
+    padding: .35rem .9rem;
+    border-radius: var(--radius-full);
+    font-size: .82rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all var(--transition);
+  }
+  .suggestion-pill:hover {
+    background: var(--clr-primary);
+    color: white;
+  }
+  .typing-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--clr-text-muted);
+    border-radius: 50%;
+    margin: 0 2px;
+    animation: bounce 1.2s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: .2s; }
+  .typing-dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-8px); }
+  }
+</style>
+{% endblock %}

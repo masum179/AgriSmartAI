@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}নিবন্ধন — AgriSmart AI{% endblock %}
+
+{% block body %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-logo">🌿</div>
+    <h1>নতুন অ্যাকাউন্ট তৈরি করুন</h1>
+    <p class="subtitle">AgriSmart AI-তে যোগ দিন<br>
+      <small style="font-size:.75rem;color:var(--clr-text-muted);">Create a new account / Register</small>
+    </p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% for field in form %}
+        <div class="form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <p class="helptext">{{ field.help_text }}</p>
+          {% endif %}
+          {% if field.errors %}
+            {% for error in field.errors %}
+              <p class="form-error">{{ error }}</p>
+            {% endfor %}
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      {% if form.non_field_errors %}
+        <div class="form-error mb-2">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-block mt-2">
+        ✅ নিবন্ধন করুন / Register
+      </button>
+    </form>
+
+    <div class="auth-footer mt-3">
+      ইতিমধ্যে অ্যাকাউন্ট আছে? <a href="{% url 'accounts:login' %}">লগইন করুন</a>
+      <br><small>Already have an account? <a href="{% url 'accounts:login' %}">Login</a></small>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,150 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ partner.get_full_name|default:partner.username }} — চ্যাট{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width:750px">
+  <div class="chat-container">
+    <!-- Chat Header -->
+    <div class="chat-header">
+      <a href="{% url 'messaging:chat_list' %}" style="color:#fff;font-size:1.2rem">←</a>
+      <div class="avatar">{{ partner.username|first|upper }}</div>
+      <div>
+        <strong>{{ partner.get_full_name|default:partner.username }}</strong>
+        <div style="font-size:.8rem;opacity:.8">{{ partner.get_role_display }}</div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages" id="chat-messages">
+      {% if all_messages %}
+        {% for msg in all_messages %}
+        <div class="chat-bubble {% if msg.sender == request.user %}sent{% else %}received{% endif %}">
+          {% if msg.linked_detection %}
+            {# ── Rich Detection Preview Card ── #}
+            <div class="detection-card" style="background:rgba(255,255,255,0.15);border-radius:12px;padding:10px;margin-bottom:6px;max-width:320px;">
+              {% if msg.linked_detection.image %}
+              <a href="/detection/{{ msg.linked_detection.id }}/" style="display:block">
+                <img src="{{ msg.linked_detection.image.url }}" alt="ফসলের ছবি"
+                     style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:8px;">
+              </a>
+              {% endif %}
+              {% if msg.linked_detection.disease %}
+              <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">
+                🌿 {{ msg.linked_detection.disease.name_bn }}
+              </div>
+              <div style="font-size:.85rem;opacity:.9;margin-bottom:4px;">
+                {{ msg.linked_detection.disease.name_en }} · {{ msg.linked_detection.disease.crop_type }}
+              </div>
+              <div style="font-size:.85rem;margin-bottom:6px;">
+                📊 আত্মবিশ্বাস: {{ msg.linked_detection.confidence_percent }}
+                · তীব্রতা: {{ msg.linked_detection.disease.get_severity_display }}
+              </div>
+              {% endif %}
+              <a href="/detection/{{ msg.linked_detection.id }}/"
+                 style="display:inline-block;padding:5px 14px;background:#10b981;color:#fff;border-radius:6px;font-size:.85rem;text-decoration:none;">
+                🔗 বিস্তারিত দেখুন
+              </a>
+            </div>
+            <div style="font-size:.9rem;margin-top:4px;">দয়া করে আমাকে পরামর্শ দিন।</div>
+          {% elif msg.message %}
+            {{ msg.message }}
+          {% elif msg.audio_file %}
+            <audio controls src="{{ msg.audio_file.url }}" style="max-width: 200px; height: 40px; outline: none;"></audio>
+          {% endif %}
+          <span class="time">{{ msg.created_at|date:"d/m H:i" }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:2rem">
+          <div class="empty-icon">👋</div>
+          <p>কথোপকথন শুরু করুন</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Chat Input -->
+    <form method="post" class="chat-input" id="chat-form">
+      {% csrf_token %}
+      <button type="button" class="btn btn-outline btn-icon" id="record-btn" title="ভয়েস রেকর্ড">🎙️</button>
+      <input type="text" name="message" placeholder="বার্তা লিখুন..." autocomplete="off" id="message-input" {% if prefill_message %}value="{{ prefill_message }}"{% endif %}>
+      <button type="submit" class="btn btn-primary btn-icon" title="পাঠান">➤</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Scroll to bottom of chat
+  var chatBox = document.getElementById('chat-messages');
+  if(chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+  document.getElementById('message-input').focus();
+
+  // Voice Recording Logic
+  let mediaRecorder;
+  let audioChunks = [];
+  const recordBtn = document.getElementById('record-btn');
+  let isRecording = false;
+
+  recordBtn.addEventListener('click', async () => {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        mediaRecorder.addEventListener('dataavailable', event => {
+          audioChunks.push(event.data);
+        });
+
+        mediaRecorder.addEventListener('stop', () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const formData = new FormData();
+          formData.append('audio_file', audioBlob, 'voice_message.webm');
+          formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+          
+          fetch('{% url "messaging:voice_message" partner.id %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          }).then(response => {
+            if (response.ok) {
+              window.location.reload();
+            } else {
+              alert('অডিও পাঠাতে সমস্যা হয়েছে।');
+              recordBtn.textContent = '🎙️';
+            }
+          }).catch(err => {
+              alert('অডিও পাঠাতে সমস্যা হয়েছে।');
+              recordBtn.textContent = '🎙️';
+          });
+        });
+
+        mediaRecorder.start();
+        isRecording = true;
+        recordBtn.style.backgroundColor = '#ef4444'; // Red when recording
+        recordBtn.style.color = '#fff';
+      } catch (err) {
+        alert("মাইক্রোফোন অ্যাক্সেস করতে সমস্যা হয়েছে।");
+      }
+    } else {
+      mediaRecorder.stop();
+      isRecording = false;
+      recordBtn.style.backgroundColor = '';
+      recordBtn.style.color = '';
+      recordBtn.textContent = '⏳';
+    }
+  });
+
+  // Make text input required only if submitting text
+  document.getElementById('chat-form').addEventListener('submit', function(e) {
+      const msgInput = document.getElementById('message-input');
+      if (!msgInput.value.trim()) {
+          e.preventDefault();
+      }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'নতুন ব্যবহারকারী যোগ করুন' %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width: 600px;">
+  <div class="page-header">
+    <a href="{% url 'adminpanel:manage_users' %}" class="btn btn-sm btn-outline mb-2">← {% t 'ফিরে যান' %}</a>
+    <h1>➕ {% t 'নতুন ব্যবহারকারী যোগ করুন' %}</h1>
+  </div>
+
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      
+      {% for field in form %}
+      <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}
+          <div class="helptext">{{ field.help_text|safe }}</div>
+        {% endif %}
+        {% for error in field.errors %}
+          <p class="form-error">{{ error }}</p>
+        {% endfor %}
+      </div>
+      {% endfor %}
+
+      <button type="submit" class="btn btn-primary btn-block mt-3">{% t 'ব্যবহারকারী যোগ করুন' %}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

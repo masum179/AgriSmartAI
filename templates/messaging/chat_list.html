@@ -1,0 +1,60 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}বার্তা — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width:700px">
+  <div class="page-header">
+    <h1>💬 বার্তা</h1>
+    <p>{% if unread_count %}{{ unread_count }}টি অপঠিত বার্তা{% else %}সকল বার্তা পঠিত{% endif %}</p>
+  </div>
+
+  <!-- Existing Conversations -->
+  {% if partners %}
+    <h3 class="mb-2">কথোপকথন</h3>
+    {% for partner in partners %}
+    {% if request.GET.detection_id %}
+    <a href="{% url 'messaging:chat_detail' partner.id %}?detection_id={{ request.GET.detection_id }}" style="display:block;text-decoration:none">
+    {% else %}
+    <a href="{% url 'messaging:chat_detail' partner.id %}" style="display:block;text-decoration:none">
+    {% endif %}
+      <div class="partner-card">
+        <div class="partner-avatar">{{ partner.username|first|upper }}</div>
+        <div class="partner-info">
+          <h4>{{ partner.get_full_name|default:partner.username }}</h4>
+          <p>{{ partner.get_role_display }} {% if partner.district %}— {{ partner.district }}{% endif %}</p>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Available Officers (for farmers) -->
+  {% if available_officers %}
+    <h3 class="mt-3 mb-2">🏛️ কৃষি কর্মকর্তাগণ</h3>
+    {% for officer in available_officers %}
+    {% if request.GET.detection_id %}
+    <a href="{% url 'messaging:chat_detail' officer.id %}?detection_id={{ request.GET.detection_id }}" style="display:block;text-decoration:none">
+    {% else %}
+    <a href="{% url 'messaging:chat_detail' officer.id %}" style="display:block;text-decoration:none">
+    {% endif %}
+      <div class="partner-card">
+        <div class="partner-avatar">{{ officer.username|first|upper }}</div>
+        <div class="partner-info">
+          <h4>{{ officer.get_full_name|default:officer.username }}</h4>
+          <p>কৃষি কর্মকর্তা {% if officer.district %}— {{ officer.district }}{% endif %}</p>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  {% endif %}
+
+  {% if not partners and not available_officers %}
+  <div class="empty-state">
+    <div class="empty-icon">💬</div>
+    <h3>কোনো কথোপকথন নেই</h3>
+    <p>কৃষি কর্মকর্তাদের সাথে যোগাযোগ করতে পারবেন</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

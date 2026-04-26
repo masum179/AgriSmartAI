@@ -1,0 +1,28 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}পরামর্শ পরিচালনা — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <div class="page-header"><h1>💊 পরামর্শ পরিচালনা</h1></div>
+  {% if recommendations %}
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>রোগ</th><th>চিকিৎসা</th><th>কীটনাশক</th><th>অবস্থা</th></tr></thead>
+      <tbody>
+        {% for r in recommendations %}
+        <tr>
+          <td>{{ r.disease.name_bn }}</td>
+          <td>{{ r.treatment_bn|truncatewords:10 }}</td>
+          <td>{{ r.pesticide_bn|default:"—" }}</td>
+          <td><span class="status-badge {% if r.is_active %}status-completed{% else %}status-failed{% endif %}">{% if r.is_active %}সক্রিয়{% else %}নিষ্ক্রিয়{% endif %}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">💊</div><h3>কোনো পরামর্শ নেই</h3></div>
+  {% endif %}
+</div>
+{% endblock %}

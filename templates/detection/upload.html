@@ -1,0 +1,121 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'রোগ শনাক্ত করুন' %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3" style="max-width:680px;">
+  <div class="page-header">
+    <h1>📸 {% t 'রোগ শনাক্ত করুন' %}</h1>
+    <p>{% t 'আক্রান্ত পাতার ছবি আপলোড করুন — AI তাৎক্ষণিক বিশ্লেষণ করবে' %}</p>
+  </div>
+
+  <div class="card">
+    <form method="post" enctype="multipart/form-data" id="upload-form">
+      {% csrf_token %}
+
+      <!-- Upload Zone -->
+      <div class="upload-area" id="upload-zone">
+        <div class="upload-icon">🌿</div>
+        <h3>{% t 'ছবি টেনে আনুন বা নির্বাচন করুন' %}</h3>
+        <p>JPG, PNG, WebP — সর্বোচ্চ ১০ MB</p>
+
+        <div class="flex gap-2 justify-center mt-2" style="justify-content:center;">
+          <button type="button" class="btn btn-primary" onclick="document.getElementById('camera-input').click()">📷 {% t 'ক্যামেরা' %}</button>
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('gallery-input').click()">🖼️ {% t 'গ্যালারি' %}</button>
+        </div>
+
+        <!-- Preview + Scanner Overlay -->
+        <div id="preview-container" style="display:none; position:relative; margin-top:1rem;">
+          <img id="preview-image" style="max-height:260px;border-radius:12px;margin:0 auto;display:block;box-shadow:0 8px 24px rgba(0,0,0,.12);" alt="Preview">
+
+          <!-- Scanner overlay -->
+          <div class="scanner-overlay" id="scanner-overlay" style="display:none;">
+            <div class="scanner-box">
+              <div class="scanner-corners"><span></span></div>
+              <div class="scanner-line"></div>
+            </div>
+            <div class="analyzing-text">🔬 AI Analyzing...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden inputs -->
+      <div style="display:none;">
+        <input type="file" accept="image/*" capture="environment" id="camera-input">
+        <input type="file" accept="image/*" id="gallery-input">
+        {{ form.image }}
+      </div>
+
+      <!-- Notes -->
+      {% if form.notes %}
+      <div class="form-group mt-3">
+        <label for="id_notes">{{ form.notes.label }}</label>
+        {{ form.notes }}
+      </div>
+      {% endif %}
+
+      {% if form.errors %}
+      <div class="mt-2">
+        {% for field, errors in form.errors.items %}{% for error in errors %}
+          <p class="form-error">{{ error }}</p>
+        {% endfor %}{% endfor %}
+      </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-block mt-3" id="submit-btn">
+        🔍 {% t 'রোগ শনাক্ত করুন' %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const cameraInput = document.getElementById('camera-input');
+  const galleryInput = document.getElementById('gallery-input');
+  const actualInput  = document.getElementById('id_image_upload') || document.querySelector('input[type="file"][name]');
+  const previewContainer = document.getElementById('preview-container');
+  const previewImage = document.getElementById('preview-image');
+  const uploadZone   = document.getElementById('upload-zone');
+  const scannerOverlay = document.getElementById('scanner-overlay');
+
+  function handleFile(file) {
+    if (!file) return;
+    if (actualInput) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      actualInput.files = dt.files;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      previewImage.src = ev.target.result;
+      previewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  cameraInput.addEventListener('change', e => handleFile(e.target.files[0]));
+  galleryInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+  // Drag and drop
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  // Show scanner on submit
+  document.getElementById('upload-form').addEventListener('submit', function() {
+    const btn = document.getElementById('submit-btn');
+    if (previewContainer.style.display !== 'none') {
+      scannerOverlay.style.display = 'flex';
+    }
+    btn.textContent = '⏳ শনাক্ত হচ্ছে...';
+    btn.disabled = true;
+  });
+</script>
+{% endblock %}

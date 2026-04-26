@@ -1,0 +1,70 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'শনাক্তকরণ ইতিহাস' %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <div class="page-header">
+    <h1>📋 {% t 'শনাক্তকরণ ইতিহাস' %}</h1>
+    <p>{% t 'আপনার সকল রোগ শনাক্তকরণের তালিকা' %}</p>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <form method="get" class="flex gap-1 flex-wrap items-center">
+      <select name="status" onchange="this.form.submit()">
+        <option value="">{% t 'সব অবস্থা' %}</option>
+        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>{% t 'সম্পন্ন' %}</option>
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>{% t 'অপেক্ষমান' %}</option>
+        <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>{% t 'ব্যর্থ' %}</option>
+      </select>
+      <a href="?bookmarked=1" class="btn btn-sm {% if bookmarked == '1' %}btn-accent{% else %}btn-outline{% endif %}">⭐ {% t 'বুকমার্ক' %}</a>
+      <a href="{% url 'detection:history' %}" class="btn btn-sm btn-outline">{% t 'সব দেখুন' %}</a>
+    </form>
+  </div>
+
+  {% if detections %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{% t 'তারিখ' %}</th>
+          <th>{% t 'রোগ' %}</th>
+          <th>{% t 'অবস্থা' %}</th>
+          <th>⭐</th>
+          <th>{% t 'বিস্তারিত' %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in detections %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ d.created_at|date:"d/m/Y H:i" }}</td>
+          <td>{% if request.session.lang == 'en' %}{{ d.disease.name_en|default:"—" }}{% else %}{{ d.disease.name_bn|default:"—" }}{% endif %}</td>
+          <td><span class="status-badge status-{{ d.status }}">{% t d.get_status_display %}</span></td>
+          <td>{% if d.is_bookmarked %}⭐{% else %}—{% endif %}</td>
+          <td style="display:flex;gap:4px;">
+            <a href="{% url 'detection:result' d.pk %}" class="btn btn-sm btn-primary">{% t 'দেখুন' %}</a>
+            <form method="post" action="{% url 'detection:delete_detection' d.pk %}" onsubmit="return confirm('{% t 'আপনি কি নিশ্চিত?' %}');" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-sm btn-danger">{% t 'মুছুন' %}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <h3>{% t 'কোনো শনাক্তকরণ পাওয়া যায়নি' %}</h3>
+    <p>{% t 'ফিল্টার পরিবর্তন করুন অথবা নতুন শনাক্তকরণ করুন' %}</p>
+    <a href="{% url 'detection:upload' %}" class="btn btn-primary mt-2">{% t 'নতুন শনাক্তকরণ' %}</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

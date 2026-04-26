@@ -1,0 +1,48 @@
+{% extends "base_dashboard.html" %}
+{% load custom_i18n %}
+
+{% block title %}{% t 'শনাক্তকরণ লগ' %} — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <div class="page-header"><h1>📊 {% t 'শনাক্তকরণ লগ' %}</h1></div>
+  <div class="filter-bar">
+    <form method="get" class="flex gap-1 items-center">
+      <select name="status" onchange="this.form.submit()">
+        <option value="">{% t 'সব অবস্থা' %}</option>
+        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>{% t 'সম্পন্ন' %}</option>
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>{% t 'অপেক্ষমান' %}</option>
+        <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>{% t 'ব্যর্থ' %}</option>
+      </select>
+    </form>
+  </div>
+  {% if detections %}
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>{% t 'ব্যবহারকারী' %}</th><th>{% t 'রোগ' %}</th><th>{% t 'আত্মবিশ্বাস' %}</th><th>{% t 'অবস্থা' %}</th><th>{% t 'তারিখ' %}</th><th>{% t 'পরিচালনা' %}</th></tr></thead>
+      <tbody>
+        {% for d in detections %}
+        <tr>
+          <td>{{ d.pk }}</td>
+          <td>{{ d.user.username }}</td>
+          <td>{% if request.session.lang == 'en' %}{{ d.disease.name_en|default:"—" }}{% else %}{{ d.disease.name_bn|default:"—" }}{% endif %}</td>
+          <td>{{ d.confidence_percent }}</td>
+          <td><span class="status-badge status-{{ d.status }}">{% t d.get_status_display %}</span></td>
+          <td>{{ d.created_at|date:"d/m/Y H:i" }}</td>
+          <td>
+            <form method="post" action="{% url 'adminpanel:delete_detection_log' d.pk %}" style="display:inline" onsubmit="return confirm('{% t 'আপনি কি নিশ্চিত?' %}');">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-sm" style="background:#ef4444;color:white;border:none;">{% t 'মুছুন' %}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">📊</div><h3>{% t 'কোনো লগ নেই' %}</h3></div>
+  {% endif %}
+</div>
+{% endblock %}
