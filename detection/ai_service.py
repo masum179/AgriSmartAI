@@ -28,106 +28,110 @@ def mock_predict_disease(image_path):
     predicted_disease_name = None
     confidence = 0.0
 
-    # Try HuggingFace Inference API with Token Rotation
-    hf_tokens = []
-    main_token = getattr(settings, 'HF_TOKEN', '')
-    if main_token:
-        hf_tokens.append(main_token)
+    # Try HuggingFace Inference API (Supports multiple tokens separated by comma)
+    hf_tokens_raw = getattr(settings, 'HF_TOKEN', '')
+    hf_tokens = [t.strip() for t in hf_tokens_raw.split(',') if t.strip()]
     
-    # Check for HF_TOKEN_2, HF_TOKEN_3, HF_TOKEN_4, HF_TOKEN_5
-    for i in range(2, 6):
-        token = getattr(settings, f'HF_TOKEN_{i}', '')
-        if token:
-            hf_tokens.append(token)
+    if hf_tokens:
+        for hf_token in hf_tokens:
+            if predicted_disease_name:
+                break  # Already found a match with a previous token
+                
+            try:
+                mime_type, _ = mimetypes.guess_type(image_path)
+                if not mime_type:
+                    mime_type = 'image/jpeg'
 
-    for hf_token in hf_tokens:
-        if predicted_disease_name:
-            break
+                with open(image_path, "rb") as f:
+                    image_data = f.read()
 
-        try:
-            mime_type, _ = mimetypes.guess_type(image_path)
-            if not mime_type:
-                mime_type = 'image/jpeg'
-
-            with open(image_path, "rb") as f:
-                image_data = f.read()
-
-            headers = {
-                "Authorization": f"Bearer {hf_token}",
-                "Content-Type": mime_type,
-            }
-
-            # Retry loop for HuggingFace "Model Loading" (503) error
-            import time
-            max_retries = 3
-            results = None
-            for attempt in range(max_retries):
-                response = requests.post(HF_API_URL, headers=headers, data=image_data, timeout=30)
-                if response.status_code == 200:
-                    results = response.json()
-                    break
-                elif response.status_code == 503 and attempt < max_retries - 1:
-                    logger.info(f"HF Model loading (503). Retrying in 5s... (Attempt {attempt+1}/{max_retries})")
-                    time.sleep(5)
-                elif response.status_code == 429:
-                    logger.warning(f"HF Token Rate Limited (429). Trying next token...")
-                    break
-                else:
-                    logger.warning(f"HF API returned status {response.status_code}: {response.text[:200]}")
-                    break
-
-            if results and isinstance(results, list) and len(results) > 0:
-                top_result = results[0]
-                raw_label = top_result.get("label", "")
-                api_confidence = float(top_result.get("score", 0.0))
-
-                clean_name = raw_label.replace("___", " ").replace("_", " ").strip()
-                is_healthy = "healthy" in clean_name.lower()
-
-                for d in diseases:
-                    if d.name_en.lower() == clean_name.lower():
-                        predicted_disease_name = d.name_bn
-                        confidence = api_confidence
+                headers = {
+                    "Authorization": f"Bearer {hf_token}",
+                    "Content-Type": mime_type,
+                }
+                
+                # Retry loop for HuggingFace "Model Loading" (503) error
+                import time
+                max_retries = 3
+                results = None
+                for attempt in range(max_retries):
+                    response = requests.post(HF_API_URL, headers=headers, data=image_data, timeout=30)
+                    
+                    if response.status_code == 200:
+                        results = response.json()
+                        break
+                    elif response.status_code == 503 and attempt < max_retries - 1:
+                        logger.info(f"HF Model loading (503). Retrying in 5s... (Attempt {attempt+1}/{max_retries})")
+                        time.sleep(5)
+                    elif response.status_code == 429: # Rate limit
+                        logger.warning(f"HF Token Rate Limited (429). Switching to next token...")
+                        break
+                    else:
+                        logger.warning(f"HF API error {response.status_code} with current token.")
                         break
 
-                if not predicted_disease_name:
-                    clean_words = set(w for w in clean_name.lower().replace('(', '').replace(')', '').split() if w not in ['with', 'and', 'the', 'of', 'in', 'disease'])
-                    best_match = None
-                    best_score = 0
+                if results and isinstance(results, list) and len(results) > 0:
+                    top_result = results[0]
+                    raw_label = top_result.get("label", "")
+                    api_confidence = float(top_result.get("score", 0.0))
+                    
+                    # Convert HF label format "Tomato___Early_blight" → "Tomato Early Blight"
+                    clean_name = raw_label.replace("___", " ").replace("_", " ").strip()
+                    is_healthy = "healthy" in clean_name.lower()
+
+                    # Find the matching disease from the database
                     for d in diseases:
-                        d_words = set(w for w in d.name_en.lower().replace('(', '').replace(')', '').split() if w not in ['with', 'and', 'the', 'of', 'in', 'disease'])
-                        if clean_words and d_words:
-                            intersection = len(clean_words.intersection(d_words))
-                            score = intersection / max(len(clean_words), len(d_words))
-                            if clean_name.lower() in d.name_en.lower() or d.name_en.lower() in clean_name.lower():
-                                score = max(score, 0.8)
-                            if score > 0.55 and score > best_score:
-                                best_match = d
-                                best_score = score
-                    if best_match:
-                        predicted_disease_name = best_match.name_bn
+                        if d.name_en.lower() == clean_name.lower():
+                            predicted_disease_name = d.name_bn
+                            confidence = api_confidence
+                            break
+
+                    # Try smart partial matching if exact match fails
+                    if not predicted_disease_name:
+                        clean_words = set(w for w in clean_name.lower().replace('(', '').replace(')', '').split() if w not in ['with', 'and', 'the', 'of', 'in', 'disease'])
+                        
+                        best_match = None
+                        best_score = 0
+                        
+                        for d in diseases:
+                            d_words = set(w for w in d.name_en.lower().replace('(', '').replace(')', '').split() if w not in ['with', 'and', 'the', 'of', 'in', 'disease'])
+                            
+                            if clean_words and d_words:
+                                # Calculate Jaccard-like similarity based on intersection
+                                intersection = len(clean_words.intersection(d_words))
+                                score = intersection / max(len(clean_words), len(d_words))
+                                
+                                # Substring match as backup
+                                if clean_name.lower() in d.name_en.lower() or d.name_en.lower() in clean_name.lower():
+                                    score = max(score, 0.8)
+
+                                if score > 0.55 and score > best_score:
+                                    best_match = d
+                                    best_score = score
+                                    
+                        if best_match:
+                            predicted_disease_name = best_match.name_bn
+                            confidence = api_confidence
+
+                    # If still no match, create a pending disease record
+                    if not predicted_disease_name and clean_name and not is_healthy:
+                        new_disease, created = Disease.objects.get_or_create(
+                            name_en__iexact=clean_name,
+                            defaults={
+                                'name_en': clean_name,
+                                'name_bn': clean_name,  # Temporary — officer will translate
+                                'crop_type': clean_name.split()[0] if clean_name else 'Unknown',
+                                'is_active': False,
+                            }
+                        )
+                        predicted_disease_name = new_disease.name_bn
                         confidence = api_confidence
 
-                if not predicted_disease_name and clean_name and not is_healthy:
-                    new_disease, created = Disease.objects.get_or_create(
-                        name_en__iexact=clean_name,
-                        defaults={
-                            'name_en': clean_name,
-                            'name_bn': clean_name,
-                            'crop_type': clean_name.split()[0] if clean_name else 'Unknown',
-                            'is_active': False,
-                        }
-                    )
-                    predicted_disease_name = new_disease.name_bn
-                    confidence = api_confidence
-
-                logger.info(f"HF API success with token: {clean_name}")
-
-        except Exception as e:
-            logger.error(f"HuggingFace API error: {e}")
-
-    if not hf_tokens:
-        logger.warning("No HF tokens set. Skipping HF API.")
+                    logger.info(f"HF API prediction: {clean_name} (confidence: {api_confidence:.2f})")
+            except Exception as e:
+                logger.error(f"HuggingFace API error with token: {e}")
+    else:
+        logger.warning("HF_TOKEN is not set. Skipping HuggingFace API.")
 
     # FALLBACK: Use Gemini API if HuggingFace failed or is not available
     if not predicted_disease_name:

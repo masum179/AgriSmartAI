@@ -159,7 +159,3 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024    # 10 MB
 # ─── AI Keys ──────────────────────────────────────────────────────────────────
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 HF_TOKEN       = os.environ.get('HF_TOKEN', '')
-HF_TOKEN_2     = os.environ.get('HF_TOKEN_2', '')
-HF_TOKEN_3     = os.environ.get('HF_TOKEN_3', '')
-HF_TOKEN_4     = os.environ.get('HF_TOKEN_4', '')
-HF_TOKEN_5     = os.environ.get('HF_TOKEN_5', '')
