@@ -172,23 +172,23 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'  [OK] Disease: {disease.name_en}'))
 
         # --- Create Sample Chat Messages ---
-        if not ChatMessage.objects.exists():
-            ChatMessage.objects.create(
-                sender=farmer,
-                receiver=officer,
-                message='স্যার, আমার ধানের পাতায় দাগ দেখা যাচ্ছে। কী করব?',
-            )
-            ChatMessage.objects.create(
-                sender=officer,
-                receiver=farmer,
-                message='পাতার ছবি আপলোড করুন। আমি দেখে পরামর্শ দেব।',
-            )
-            ChatMessage.objects.create(
-                sender=farmer,
-                receiver=officer,
-                message='ধন্যবাদ স্যার। ছবি আপলোড করেছি।',
-            )
-            self.stdout.write(self.style.SUCCESS('  [OK] Sample chat messages created'))
+        # if not ChatMessage.objects.exists():
+        #     ChatMessage.objects.create(
+        #         sender=farmer,
+        #         receiver=officer,
+        #         message='স্যার, আমার ধানের পাতায় দাগ দেখা যাচ্ছে। কী করব?',
+        #     )
+        #     ChatMessage.objects.create(
+        #         sender=officer,
+        #         receiver=farmer,
+        #         message='পাতার ছবি আপলোড করুন। আমি দেখে পরামর্শ দেব।',
+        #     )
+        #     ChatMessage.objects.create(
+        #         sender=farmer,
+        #         receiver=officer,
+        #         message='ধন্যবাদ স্যার। ছবি আপলোড করেছি।',
+        #     )
+        #     self.stdout.write(self.style.SUCCESS('  [OK] Sample chat messages created'))
 
         self.stdout.write(self.style.SUCCESS('\n[DONE] Database seeded successfully!'))
         self.stdout.write('\nLogin Credentials:')
