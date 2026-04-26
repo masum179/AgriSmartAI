@@ -167,6 +167,7 @@ class UnreadNotificationsView(LoginRequiredMixin, View):
         notifications = []
 
         # 1. Check Unread Chat Messages
+        from django.urls import reverse
         unread_chats = ChatMessage.objects.filter(receiver=user, is_read=False).select_related('sender').order_by('-created_at')[:5]
         for msg in unread_chats:
             notifications.append({
@@ -174,7 +175,7 @@ class UnreadNotificationsView(LoginRequiredMixin, View):
                 'type': 'chat',
                 'title': f"{msg.sender.username} থেকে নতুন বার্তা",
                 'message': msg.message[:50] + '...' if len(msg.message) > 50 else msg.message,
-                'url': f"/messaging/{msg.sender.id}/"
+                'url': reverse('messaging:chat_detail', kwargs={'user_id': msg.sender.id})
             })
 
         # 2. For Officers: Check Unread/Unresponded InfoRequests
