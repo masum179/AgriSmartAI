@@ -5,8 +5,7 @@
 ---
 
 ## 🚀 Key Features
-- **AI Diagnostics**: Instant disease identification using MobileNetV2 and Gemini Vision.
-- **Dual-AI Fallback**: Automatically switches to Gemini if HuggingFace is rate-limited or loading.
+- **AI Diagnostics**: Instant disease identification using advanced machine learning.
 - **Multilingual Support**: Full support for **Bengali (বাংলা)** and English.
 - **Notification System**: Real-time alerts for messages and new disease identification requests.
 - **Officer Dashboard**: Tools for agricultural officers to verify AI results and provide expert advice.
