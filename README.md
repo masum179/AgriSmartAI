@@ -1,6 +1,5 @@
-# 🌿 AgriSmart AI
-
-**AgriSmart AI** is an AI-powered crop disease detection and agricultural communication platform designed to empower farmers and agricultural officers. It uses advanced machine learning (HuggingFace + Gemini) to diagnose plant diseases from leaf images in seconds.
+# AgriSmart AI
+**AgriSmart AI** is an AI-powered crop disease detection and agricultural communication platform designed to empower farmers and agricultural officers. It uses the advanced **MobileNetV2** machine learning model to diagnose plant diseases from leaf images within seconds.
 
 ---
 
@@ -45,29 +44,15 @@ For testing purposes, you can use the following pre-seeded accounts:
    pip install -r requirements.txt
    ```
 
-4. **Set up environment variables:**
-   Create a `.env` file in the root directory:
-   ```env
-   HF_TOKEN=your_huggingface_tokens_here
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-5. **Initialize Database:**
+4. **Initialize Database:**
    ```bash
    python manage.py migrate
    python manage.py seed_data
    python seed_plantvillage.py
    ```
 
-6. **Run Server:**
+5. **Run Server:**
    ```bash
    python manage.py runserver
    ```
 
----
-
-
-
----
-
-Developed with ❤️ for the agricultural community.
